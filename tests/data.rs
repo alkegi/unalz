@@ -10,7 +10,7 @@ const SOURCE: &[(&str, u64, u32)] = &[
     ("empty.txt", 0, 0x00000000),
     ("euckr_content.txt", 71, 0x3e3e0f3f),
     ("hello.txt", 131, 0x1b239eb9),
-    ("large.txt", 10485774, 0xdee4d582),
+    ("large.txt", 131364, 0xfe5598ec),
     ("repeated.txt", 720, 0x33ab076a),
     ("뷁테스트.txt", 72, 0x64205eb3),
     ("한글파일.txt", 56, 0xf223d6ec),
@@ -79,7 +79,7 @@ fn store_list() {
 fn store_extract() {
     let path = skip!("store.alz");
     let dir = extract!(&path, None);
-    for (name, ..) in SOURCE.iter().filter(|(n, ..)| *n != "large.txt") {
+    for (name, ..) in SOURCE {
         verify(&dir, name);
     }
 }
@@ -104,9 +104,9 @@ fn deflate_normal_list() {
 fn deflate_normal_extract() {
     let path = skip!("normal.alz");
     let dir = extract!(&path, None);
-    verify(&dir, "hello.txt");
-    verify(&dir, "binary.bin");
-    verify(&dir, "empty.txt");
+    for (name, ..) in SOURCE {
+        verify(&dir, name);
+    }
 }
 
 // --- Deflate (low) ---
@@ -115,8 +115,9 @@ fn deflate_normal_extract() {
 fn deflate_low_extract() {
     let path = skip!("low.alz");
     let dir = extract!(&path, None);
-    verify(&dir, "hello.txt");
-    verify(&dir, "binary.bin");
+    for (name, ..) in SOURCE {
+        verify(&dir, name);
+    }
 }
 
 // --- Encrypted (zip2.0) ---
@@ -135,11 +136,9 @@ fn encrypted_list() {
 fn encrypted_extract() {
     let path = skip!("zip20.alz");
     let dir = extract!(&path, Some("test1234"));
-    verify(&dir, "hello.txt");
-    verify(&dir, "binary.bin");
-    verify(&dir, "empty.txt");
-    verify(&dir, "한글파일.txt");
-    verify(&dir, "subdir/nested/deep.txt");
+    for (name, ..) in SOURCE {
+        verify(&dir, name);
+    }
 }
 
 #[test]
@@ -173,9 +172,14 @@ fn split_list() {
 fn split_extract() {
     let path = skip!("split.alz");
     let dir = extract!(&path, None);
-    verify(&dir, "large.txt");
-    verify(&dir, "hello.txt");
-    verify(&dir, "binary.bin");
+    // split.alz carries the 10 MB variant of large.txt, not the 131 KB one in
+    // the other archives; verify it directly.
+    for (name, ..) in SOURCE.iter().filter(|(n, ..)| *n != "large.txt") {
+        verify(&dir, name);
+    }
+    let large = std::fs::read(dir.join("large.txt")).unwrap();
+    assert_eq!(large.len() as u64, 10_485_774);
+    assert_eq!(crc32fast::hash(&large), 0xdee4_d582);
 }
 
 // --- Edge cases ---
