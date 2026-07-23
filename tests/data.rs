@@ -25,23 +25,12 @@ fn verify(dir: &Path, name: &str) {
     assert_eq!(crc32fast::hash(&data), *crc, "{name}: wrong CRC");
 }
 
-fn alz(name: &str) -> Option<String> {
+fn alz(name: &str) -> String {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests/data")
         .join(name);
-    path.exists().then(|| path.to_str().unwrap().to_string())
-}
-
-macro_rules! skip {
-    ($name:expr) => {
-        match alz($name) {
-            Some(p) => p,
-            None => {
-                eprintln!("SKIP: tests/data/{} not found", $name);
-                return;
-            }
-        }
-    };
+    assert!(path.is_file(), "test archive missing: {}", path.display());
+    path.to_str().unwrap().to_string()
 }
 
 fn extract_to(path: &str, password: Option<&str>, tag: &str) -> PathBuf {
@@ -67,7 +56,7 @@ macro_rules! extract {
 
 #[test]
 fn store_list() {
-    let path = skip!("store.alz");
+    let path = alz("store.alz");
     let archive = AlzArchive::open(&path).unwrap();
     assert_eq!(archive.entries.len(), 10);
     for entry in &archive.entries {
@@ -77,7 +66,7 @@ fn store_list() {
 
 #[test]
 fn store_extract() {
-    let path = skip!("store.alz");
+    let path = alz("store.alz");
     let dir = extract!(&path, None);
     for (name, ..) in SOURCE {
         verify(&dir, name);
@@ -88,7 +77,7 @@ fn store_extract() {
 
 #[test]
 fn deflate_normal_list() {
-    let path = skip!("normal.alz");
+    let path = alz("normal.alz");
     let archive = AlzArchive::open(&path).unwrap();
     assert_eq!(archive.entries.len(), 10);
     // empty.txt is Store, rest are Deflate
@@ -102,7 +91,7 @@ fn deflate_normal_list() {
 
 #[test]
 fn deflate_normal_extract() {
-    let path = skip!("normal.alz");
+    let path = alz("normal.alz");
     let dir = extract!(&path, None);
     for (name, ..) in SOURCE {
         verify(&dir, name);
@@ -113,7 +102,7 @@ fn deflate_normal_extract() {
 
 #[test]
 fn deflate_low_extract() {
-    let path = skip!("low.alz");
+    let path = alz("low.alz");
     let dir = extract!(&path, None);
     for (name, ..) in SOURCE {
         verify(&dir, name);
@@ -124,7 +113,7 @@ fn deflate_low_extract() {
 
 #[test]
 fn encrypted_list() {
-    let path = skip!("zip20.alz");
+    let path = alz("zip20.alz");
     let archive = AlzArchive::open(&path).unwrap();
     assert!(archive.is_encrypted);
     let encrypted_count = archive.entries.iter().filter(|e| e.is_encrypted()).count();
@@ -134,7 +123,7 @@ fn encrypted_list() {
 
 #[test]
 fn encrypted_extract() {
-    let path = skip!("zip20.alz");
+    let path = alz("zip20.alz");
     let dir = extract!(&path, Some("test1234"));
     for (name, ..) in SOURCE {
         verify(&dir, name);
@@ -143,7 +132,7 @@ fn encrypted_extract() {
 
 #[test]
 fn encrypted_wrong_password() {
-    let path = skip!("zip20.alz");
+    let path = alz("zip20.alz");
     let mut archive = AlzArchive::open(&path).unwrap();
     let dir = std::env::temp_dir().join("unalz-wrongpwd");
     let _ = std::fs::remove_dir_all(&dir);
@@ -156,7 +145,7 @@ fn encrypted_wrong_password() {
 
 #[test]
 fn split_list() {
-    let path = skip!("split.alz");
+    let path = alz("split.alz");
     let archive = AlzArchive::open(&path).unwrap();
     assert_eq!(archive.entries.len(), 10);
     // large.txt should be 10MB in split archive
@@ -170,7 +159,7 @@ fn split_list() {
 
 #[test]
 fn split_extract() {
-    let path = skip!("split.alz");
+    let path = alz("split.alz");
     let dir = extract!(&path, None);
     // split.alz carries the 10 MB variant of large.txt, not the 131 KB one in
     // the other archives; verify it directly.
@@ -186,7 +175,7 @@ fn split_extract() {
 
 #[test]
 fn empty_file() {
-    let path = skip!("store.alz");
+    let path = alz("store.alz");
     let dir = extract!(&path, None);
     let empty = std::fs::read(dir.join("empty.txt")).unwrap();
     assert!(empty.is_empty());
@@ -194,7 +183,7 @@ fn empty_file() {
 
 #[test]
 fn cp949_extended_filename() {
-    let path = skip!("store.alz");
+    let path = alz("store.alz");
     let archive = AlzArchive::open(&path).unwrap();
     // 뷁 is a CP949-only character not in EUC-KR
     assert!(archive.entries.iter().any(|e| e.file_name.contains("뷁")));
@@ -202,7 +191,7 @@ fn cp949_extended_filename() {
 
 #[test]
 fn nested_directories() {
-    let path = skip!("store.alz");
+    let path = alz("store.alz");
     let dir = extract!(&path, None);
     assert!(dir.join("subdir/nested/deep.txt").exists());
 }
