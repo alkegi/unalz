@@ -36,6 +36,10 @@ cat archive.alz | unalz -l -      # read from stdin
 - CRC32 verification
 - DOS timestamp preservation
 
+## Docs
+
+[https://github.com/alkegi/docs](https://github.com/alkegi/docs)
+
 ## Reference
 
 - [`unalz`](https://github.com/kippler/unalz) - original C/C++ implementation by kippler
