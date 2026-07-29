@@ -21,7 +21,7 @@
 //! so the first candidate cut that produces output is the real boundary — the
 //! same end-of-block signal the reference decoder uses.
 
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 
 use crate::crypto::ZipCrypto;
 use crate::error::{AlzError, AlzResult};
@@ -115,7 +115,7 @@ fn decode_probe(std_stream: &[u8], out: &mut Vec<u8>, cap: u64) -> AlzResult<u64
 pub fn extract_bzip2<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
-    _compressed_size: u64,
+    compressed_size: u64,
     max_output: u64,
     mut crypto: Option<&mut ZipCrypto>,
 ) -> AlzResult<u32> {
@@ -134,11 +134,22 @@ pub fn extract_bzip2<R: Read, W: Write>(
             "compressed size exceeds limit".into(),
         ));
     }
+    // read_to_end never errors on a short read, so a truncated entry surfaces as
+    // fewer bytes than the header declared. Report it as EOF so the truncation
+    // recovery path (which store and deflate reach via read_exact) also applies.
+    if compressed_size > 0 && (read as u64) < compressed_size {
+        return Err(AlzError::Io(io::Error::from(io::ErrorKind::UnexpectedEof)));
+    }
     if let Some(ref mut c) = crypto {
         c.decrypt(&mut alz_data);
     }
 
     let total_bits = alz_data.len() * 8;
+    // Each probe re-copies the block up to the candidate cut, so false DLZ
+    // markers make the search quadratic. Cap the total bytes copied; a valid
+    // archive stays far under the cap.
+    let probe_budget = (alz_data.len() as u64).saturating_mul(32).max(1 << 20);
+    let mut probe_bytes: u64 = 0;
     let mut hasher = crc32fast::Hasher::new();
     let mut produced_total: u64 = 0;
     let mut pos = 0usize; // bit position
@@ -167,6 +178,12 @@ pub fn extract_bzip2<R: Read, W: Write>(
                 return Err(AlzError::Bzip2Failed("block boundary not found".into()));
             }
             let cand = next_marker(&alz_data, search_from).unwrap_or(total_bits);
+            probe_bytes += ((cand - block_start) / 8) as u64;
+            if probe_bytes > probe_budget {
+                return Err(AlzError::Bzip2Failed(
+                    "bzip2 boundary search exceeded work budget".into(),
+                ));
+            }
             block_out.clear();
             let produced = decode_probe(
                 &build_block_probe(&alz_data, block_start, cand),
