@@ -109,6 +109,31 @@ fn deflate_low_extract() {
     }
 }
 
+// --- Bzip2 (real DLZ-framed method 1) ---
+
+#[test]
+fn bzip2_real_extract() {
+    let path = alz("bzip2.alz");
+    let archive = AlzArchive::open(&path).unwrap();
+    assert!(
+        archive
+            .entries
+            .iter()
+            .all(|e| e.compression_method == CompressionMethod::Bzip2),
+        "both entries should use ALZ bzip2"
+    );
+
+    let dir = extract!(&path, None);
+    for (name, len, crc) in [
+        ("a.txt", 2340u64, 0xcf5af352u32),
+        ("b.txt", 2160, 0x7b6217fe),
+    ] {
+        let data = std::fs::read(dir.join(name)).unwrap();
+        assert_eq!(data.len() as u64, len, "{name}: wrong length");
+        assert_eq!(crc32fast::hash(&data), crc, "{name}: wrong CRC");
+    }
+}
+
 // --- Encrypted (zip2.0) ---
 
 #[test]

@@ -1,12 +1,13 @@
 //! Regression test for multi-block ALZ bzip2 extraction.
 //!
 //! ALZ bzip2 files larger than one bzip2 block (~900 KB uncompressed) span
-//! multiple blocks. There is no real multi-block ALZ archive in tests/data, so
-//! this test synthesizes one: it compresses data with the standard `bzip2`
-//! crate, converts that standard stream into ALZ bzip2 framing (the inverse of
-//! what the extractor reconstructs), and checks the extractor round-trips it
-//! byte-for-byte — including a case whose compressed payload coincidentally
-//! contains a false "DLZ" marker.
+//! multiple blocks. A single-block real archive lives in tests/data/bzip2.alz;
+//! the multi-block case has no real sample, so this test synthesizes one: it
+//! compresses data with the standard `bzip2` crate, converts that standard
+//! stream into ALZ bzip2 framing (the inverse of what the extractor
+//! reconstructs), and checks the extractor round-trips it byte-for-byte,
+//! including a case whose compressed payload coincidentally contains a false
+//! "DLZ" marker.
 
 use std::io::Write;
 
