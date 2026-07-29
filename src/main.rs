@@ -191,6 +191,8 @@ fn main() {
             }
             process::exit(1);
         }
+        // A reader closing the pipe (`unalz -p a.alz f | head`) is a normal stop.
+        Err(ref e) if cli.pipe && e.is_broken_pipe() => {}
         Err(e) => {
             eprintln!("\nextract failed: {e}");
             process::exit(2);
