@@ -2,7 +2,7 @@
 name = "unalz"
 version = "0.1.1"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 description = "ALZ archive extractor"
 readme = "README.md"
 repository = "https://github.com/alkegi/unalz"
