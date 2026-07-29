@@ -11,12 +11,24 @@ ALZ archive extractor written in Rust.
 ```
 unalz archive.alz                 # extract all files
 unalz archive.alz file.txt        # extract a specific file
-unalz -d output/ archive.alz      # extract to a directory
-unalz --pwd SECRET archive.alz    # extract an encrypted archive
+unalz -d output/ archive.alz      # extract into a directory
+unalz -P SECRET archive.alz       # extract an encrypted archive
 unalz -l archive.alz              # list contents
 unalz -p archive.alz file.txt     # extract to stdout
 cat archive.alz | unalz -l -      # read from stdin
 ```
+
+| Option | | Description |
+|--------|--|-------------|
+| `-l` | `--list` | list contents instead of extracting |
+| `-d` | `--output-dir DIR` | extract into DIR (default: current directory) |
+| `-p` | `--pipe` | extract to stdout |
+| `-P` | `--password PW` | decryption password |
+| `-q` | `--quiet` | suppress progress messages |
+| `-h` | `--help` | show help and exit |
+| `-V` | `--version` | show version and exit |
+
+Short flags bundle (`-lq`). See [`unalz.1`](man/unalz.1) for the man page.
 
 ## Supported Features
 
