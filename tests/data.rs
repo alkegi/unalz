@@ -52,6 +52,31 @@ macro_rules! extract {
     };
 }
 
+// --- Directory entry (attribute 0x10) ---
+
+/// An archive carrying a standalone directory entry (attribute 0x10, zero
+/// bytes) must materialize the empty directory, not just the parents of files.
+#[test]
+fn directory_entry_extract() {
+    let path = alz("dir_tree.alz");
+    let dir = extract!(&path, None);
+
+    assert!(
+        dir.join("work/tree/empty_folder").is_dir(),
+        "standalone directory entry should be created"
+    );
+    for (name, len, crc) in [
+        ("work/tree/top.txt", 10u64, 0xfb2ea7cfu32),
+        ("work/tree/sub/one.txt", 8, 0xd874ffc9),
+        ("work/tree/sub/deeper/two.txt", 8, 0xf359ac0a),
+        ("work/tree/sub/deeper/deepest/three.txt", 16, 0x75ec5dfb),
+    ] {
+        let data = std::fs::read(dir.join(name)).unwrap();
+        assert_eq!(data.len() as u64, len, "{name}: wrong length");
+        assert_eq!(crc32fast::hash(&data), crc, "{name}: wrong CRC");
+    }
+}
+
 // --- Store ---
 
 #[test]
