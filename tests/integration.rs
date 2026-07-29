@@ -211,3 +211,19 @@ fn bzip2_decompress() {
     h.update(b"hello world");
     assert_eq!(crc, h.finalize());
 }
+
+#[test]
+fn trailing_dummy_data_tolerated() {
+    let dir = test_dir();
+    let path = dir.join("trail.alz");
+    let mut data = T_ALZ.to_vec();
+    data.extend_from_slice(&[0xa5; 1024]);
+    std::fs::write(&path, &data).unwrap();
+
+    let mut archive = AlzArchive::open(path.to_str().unwrap()).unwrap();
+    assert_eq!(archive.entries.len(), 1);
+    let out = dir.join("out");
+    std::fs::create_dir_all(&out).unwrap();
+    unalz::extract::extract_all(&mut archive, &out, None, false, true).unwrap();
+    assert_eq!(std::fs::read(out.join("t/t.txt")).unwrap(), b"42");
+}

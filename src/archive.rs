@@ -141,6 +141,7 @@ impl AlzArchive {
 
     fn parse(&mut self) -> AlzResult<()> {
         let mut seen_alz_header = false;
+        let mut seen_central_dir = false;
 
         // Parse endInfos from the 16-byte file tail.
         let tail = *self.reader.tail();
@@ -172,6 +173,7 @@ impl AlzArchive {
                 }
                 SIG_CENTRAL_DIRECTORY => {
                     self.read_central_directory()?;
+                    seen_central_dir = true;
                 }
                 SIG_END_OF_CENTRAL_DIR => {
                     break;
@@ -181,6 +183,9 @@ impl AlzArchive {
                 }
                 SIG_SPLIT_MARKER => {}
                 _ => {
+                    if seen_central_dir {
+                        break;
+                    }
                     if seen_alz_header {
                         return Err(AlzError::CorruptedFile);
                     } else {
