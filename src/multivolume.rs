@@ -111,12 +111,13 @@ impl MultiVolumeReader {
             }
         }
 
-        // Read the 16-byte file tail from the first volume.
+        // The end-of-archive record sits at the end of the LAST volume; every
+        // earlier volume ends in its own split trailer instead.
         let mut tail = [0u8; 16];
-        let vol0 = &mut volumes[0];
-        if vol0.file_size >= 16 {
-            vol0.file.seek(SeekFrom::Start(vol0.file_size - 16))?;
-            vol0.file.read_exact(&mut tail)?;
+        let last = volumes.last_mut().expect("volumes is non-empty");
+        if last.file_size >= 16 {
+            last.file.seek(SeekFrom::Start(last.file_size - 16))?;
+            last.file.read_exact(&mut tail)?;
         }
 
         let mut reader = MultiVolumeReader {
@@ -150,7 +151,7 @@ impl MultiVolumeReader {
         }
     }
 
-    /// The 16-byte file tail (endInfos) from the first volume.
+    /// The 16-byte end-of-archive record from the last volume.
     pub fn tail(&self) -> &[u8; 16] {
         &self.tail
     }
