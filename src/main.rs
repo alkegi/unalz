@@ -1,6 +1,6 @@
 //! `unalz`: command-line ALZ archive extractor.
 
-use std::io::Read;
+use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
 
@@ -120,7 +120,14 @@ fn main() {
     };
 
     if cli.list {
-        list_archive(&archive, &cli.archive);
+        // A closed pipe (`unalz -l big.alz | head`) is the reader's normal way
+        // of saying "enough", not a failure.
+        if let Err(e) = list_archive(&archive, &cli.archive)
+            && e.kind() != io::ErrorKind::BrokenPipe
+        {
+            eprintln!("err: {e}");
+            process::exit(2);
+        }
         return;
     }
 
@@ -191,13 +198,20 @@ fn main() {
     }
 }
 
-fn list_archive(archive: &AlzArchive, source: &str) {
-    println!("\nListing archive: {source}");
-    println!();
-    println!("Attr  Uncomp Size    Comp Size Method  Date & Time & File Name");
-    println!(
+fn list_archive(archive: &AlzArchive, source: &str) -> io::Result<()> {
+    let stdout = io::stdout();
+    let mut out = stdout.lock();
+
+    writeln!(out, "\nListing archive: {source}")?;
+    writeln!(out)?;
+    writeln!(
+        out,
+        "Attr  Uncomp Size    Comp Size Method  Date & Time & File Name"
+    )?;
+    writeln!(
+        out,
         "---- ------------ ------------ ------- ------------------------------------------------"
-    );
+    )?;
 
     for entry in &archive.entries {
         let a = entry.file_attribute;
@@ -212,22 +226,25 @@ fn list_archive(archive: &AlzArchive, source: &str) {
         let datetime = dos_datetime_to_string(entry.file_time_date);
         let encrypted = if entry.is_encrypted() { "*" } else { "" };
 
-        println!(
+        writeln!(
+            out,
             "{attr} {:>12} {:>12} {:<7} {datetime}  {}{encrypted}",
             entry.uncompressed_size,
             entry.compressed_size,
             entry.compression_method,
             entry.file_name,
-        );
+        )?;
     }
 
     let (total_uncompressed, total_compressed, file_count) = archive_totals(&archive.entries);
 
-    println!(
+    writeln!(
+        out,
         "----- ------------ ------------ ------- ------------------------------------------------"
-    );
+    )?;
     let plural = if file_count <= 1 { "" } else { "s" };
-    println!(
+    writeln!(
+        out,
         "      {total_uncompressed:>12} {total_compressed:>12}         Total {file_count} file{plural}"
-    );
+    )
 }
