@@ -169,7 +169,16 @@ impl AlzArchive {
                     if self.entries.len() as u64 >= max_entries {
                         return Err(AlzError::TooManyEntries);
                     }
-                    self.read_local_file_header()?;
+                    // A header cut short by truncation (missing split volume)
+                    // ends the index cleanly, keeping the entries read so far;
+                    // extraction then recovers those complete files.
+                    match self.read_local_file_header() {
+                        Ok(()) => {}
+                        Err(AlzError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                            break;
+                        }
+                        Err(e) => return Err(e),
+                    }
                 }
                 SIG_CENTRAL_DIRECTORY => {
                     self.read_central_directory()?;

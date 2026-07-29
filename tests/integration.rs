@@ -227,3 +227,43 @@ fn trailing_dummy_data_tolerated() {
     unalz::extract::extract_all(&mut archive, &out, None, false, true).unwrap();
     assert_eq!(std::fs::read(out.join("t/t.txt")).unwrap(), b"42");
 }
+
+/// A truncated archive (e.g. a split set missing its later volumes) must still
+/// extract every complete file and report partial success, not discard the run.
+#[test]
+fn truncated_archive_keeps_complete_files_and_warns() {
+    // Two entries built from T_ALZ; the second entry's data is cut short. The
+    // parser reads both local headers, then extraction completes entry 1 and
+    // hits EOF on entry 2.
+    let clz = T_ALZ
+        .windows(4)
+        .position(|w| w == [0x43, 0x4c, 0x5a, 0x01])
+        .unwrap();
+    let entry = &T_ALZ[8..clz]; // full first entry: BLZ signature .. end of data
+
+    let mut entry2 = entry.to_vec();
+    entry2[25] = b'u'; // rename "t/t.txt" -> "t/u.txt" so it doesn't collide
+    entry2.truncate(entry2.len() - 2); // drop 2 of the 4 compressed bytes
+
+    let mut data = Vec::new();
+    data.extend_from_slice(&T_ALZ[0..8]); // ALZ header
+    data.extend_from_slice(entry);
+    data.extend_from_slice(&entry2); // no central directory -> parser stops at EOF
+
+    let dir = test_dir();
+    let path = dir.join("trunc.alz");
+    std::fs::write(&path, &data).unwrap();
+
+    let mut archive = AlzArchive::open(path.to_str().unwrap()).unwrap();
+    assert_eq!(archive.entries.len(), 2);
+    let out = dir.join("out");
+    std::fs::create_dir_all(&out).unwrap();
+
+    // Partial success: entry 1 kept, entry 2 truncated.
+    let complete = unalz::extract::extract_all(&mut archive, &out, None, false, true).unwrap();
+    assert!(
+        !complete,
+        "truncated archive should report partial extraction"
+    );
+    assert_eq!(std::fs::read(out.join("t/t.txt")).unwrap(), b"42");
+}
