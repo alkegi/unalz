@@ -133,8 +133,9 @@ fn main() {
         } else {
             match rpassword::prompt_password("Enter Password : ") {
                 Ok(pwd) => Some(pwd),
-                Err(e) => {
-                    eprintln!("err: {e}");
+                // No TTY
+                Err(_) => {
+                    eprintln!("err: encrypted archive, password required (use --pwd)");
                     process::exit(1);
                 }
             }
