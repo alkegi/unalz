@@ -45,9 +45,9 @@ pub fn extract_entry(
         ) {
             return Err(AlzError::InvalidPassword);
         }
-        // Re-initialize for actual decryption.
+        // The verify step above consumed the cipher's key state, so start over
+        // and re-run the 12-byte header to reach the keystream for the payload.
         let mut c = ZipCrypto::new(&pwd_bytes);
-        // Re-process the encryption header to advance key state.
         let mut hdr_copy = *enc_chk;
         c.decrypt(&mut hdr_copy);
         Some(c)
@@ -162,28 +162,48 @@ fn decompress_to<R: io::Read, W: Write>(
     }
 }
 
-/// Extract all entries from the archive.
+/// A premature end of data (missing volume or partial download), not a format
+/// error; every entry before the cut is intact.
+fn is_truncation(e: &AlzError) -> bool {
+    matches!(e, AlzError::Io(io) if io.kind() == io::ErrorKind::UnexpectedEof)
+}
+
+/// Extract all entries. Returns `Ok(true)` when every entry was written, or
+/// `Ok(false)` when the archive was truncated: the complete files before the
+/// cut are kept and a warning is printed.
 pub fn extract_all(
     archive: &mut AlzArchive,
     dest_dir: &Path,
     password: Option<&str>,
     pipe_mode: bool,
     quiet: bool,
-) -> AlzResult<()> {
+) -> AlzResult<bool> {
     let entries: Vec<AlzFileEntry> = archive.entries.clone();
-    for entry in &entries {
+    let total = entries.len();
+    for (done, entry) in entries.iter().enumerate() {
         if !quiet && !pipe_mode {
             eprint!(
                 "\nextracting : {} ({}bytes) ",
                 entry.file_name, entry.uncompressed_size
             );
         }
-        extract_entry(archive, entry, dest_dir, password, pipe_mode)?;
-        if !quiet && !pipe_mode {
-            eprint!(".. ok");
+        match extract_entry(archive, entry, dest_dir, password, pipe_mode) {
+            Ok(()) => {
+                if !quiet && !pipe_mode {
+                    eprint!(".. ok");
+                }
+            }
+            Err(ref e) if is_truncation(e) => {
+                eprintln!(
+                    "\nwarning: archive truncated after {done} of {total} files \
+                     (missing split volume?); kept the complete files"
+                );
+                return Ok(false);
+            }
+            Err(e) => return Err(e),
         }
     }
-    Ok(())
+    Ok(true)
 }
 
 /// Extract specific files by name.
@@ -194,7 +214,7 @@ pub fn extract_files(
     password: Option<&str>,
     pipe_mode: bool,
     quiet: bool,
-) -> AlzResult<()> {
+) -> AlzResult<bool> {
     let entries: Vec<AlzFileEntry> = archive.entries.clone();
     for name in file_names {
         if let Some(entry) = entries.iter().find(|e| e.file_name == *name) {
@@ -204,15 +224,26 @@ pub fn extract_files(
                     entry.file_name, entry.uncompressed_size
                 );
             }
-            extract_entry(archive, entry, dest_dir, password, pipe_mode)?;
-            if !quiet && !pipe_mode {
-                eprint!(".. ok");
+            match extract_entry(archive, entry, dest_dir, password, pipe_mode) {
+                Ok(()) => {
+                    if !quiet && !pipe_mode {
+                        eprint!(".. ok");
+                    }
+                }
+                Err(ref e) if is_truncation(e) => {
+                    eprintln!(
+                        "\nwarning: {name} is truncated (missing split volume?); \
+                         its data is incomplete"
+                    );
+                    return Ok(false);
+                }
+                Err(e) => return Err(e),
             }
         } else if !quiet && !pipe_mode {
             eprintln!("\nfilename not matched : {name}");
         }
     }
-    Ok(())
+    Ok(true)
 }
 
 #[cfg(test)]

@@ -170,14 +170,22 @@ fn main() {
     };
 
     match result {
-        Ok(()) => {
+        // Exit 0 all extracted, 1 partial (truncation warning already printed),
+        // 2 fatal -- the convention used by 7-Zip, unzip and bsdtar.
+        Ok(true) => {
             if !quiet {
                 eprintln!("\ndone.");
             }
         }
+        Ok(false) => {
+            if !quiet {
+                eprintln!("\ndone (with warnings).");
+            }
+            process::exit(1);
+        }
         Err(e) => {
             eprintln!("\nextract failed: {e}");
-            process::exit(1);
+            process::exit(2);
         }
     }
 }
