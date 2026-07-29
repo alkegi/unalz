@@ -119,8 +119,9 @@ pub fn extract_bzip2<R: Read, W: Write>(
     max_output: u64,
     mut crypto: Option<&mut ZipCrypto>,
 ) -> AlzResult<u32> {
-    // Bound the in-memory copy of the compressed stream.
-    const MAX_BZ2_COMPRESSED: u64 = 512 * 1024 * 1024;
+    // Bound the in-memory compressed copy. 256 MiB keeps `len * 8` (below)
+    // within a 32-bit usize.
+    const MAX_BZ2_COMPRESSED: u64 = 256 * 1024 * 1024;
     // Guard against a payload packed with spurious DLZ markers forcing many
     // decode attempts for one block.
     const MAX_CANDIDATES_PER_BLOCK: u32 = 4096;
