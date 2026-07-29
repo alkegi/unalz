@@ -109,6 +109,9 @@ pub struct AlzArchive {
     pub is_encrypted: bool,
     /// Whether any entry uses a data descriptor.
     pub is_data_descr: bool,
+    /// Whether the index ended on a truncated header (e.g. a missing split
+    /// volume) rather than a proper end-of-central-directory record.
+    pub truncated: bool,
 }
 
 impl AlzArchive {
@@ -121,6 +124,7 @@ impl AlzArchive {
             entries: Vec::new(),
             is_encrypted: false,
             is_data_descr: false,
+            truncated: false,
         };
         archive.parse()?;
         Ok(archive)
@@ -134,6 +138,7 @@ impl AlzArchive {
             entries: Vec::new(),
             is_encrypted: false,
             is_data_descr: false,
+            truncated: false,
         };
         archive.parse()?;
         Ok(archive)
@@ -157,7 +162,14 @@ impl AlzArchive {
                 Ok(sig) => sig,
                 // A clean (or partial) end-of-data terminates parsing; any
                 // other I/O error is real and must propagate.
-                Err(AlzError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
+                Err(AlzError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                    // Reaching EOF here is a clean end once the central directory
+                    // has been read; before that it means the index was cut off.
+                    if !seen_central_dir {
+                        self.truncated = true;
+                    }
+                    break;
+                }
                 Err(e) => return Err(e),
             };
             match sig {
@@ -175,6 +187,7 @@ impl AlzArchive {
                     match self.read_local_file_header() {
                         Ok(()) => {}
                         Err(AlzError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                            self.truncated = true;
                             break;
                         }
                         Err(e) => return Err(e),
