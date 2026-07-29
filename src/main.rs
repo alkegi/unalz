@@ -179,8 +179,8 @@ fn main() {
     };
 
     match result {
-        // Exit 0 all extracted, 1 partial (truncation warning already printed),
-        // 2 fatal -- the convention used by 7-Zip, unzip and bsdtar.
+        // 0 = all extracted, 1 = partial (truncation warning already printed),
+        // 2 = fatal.
         Ok(true) => {
             if !quiet {
                 eprintln!("\ndone.");

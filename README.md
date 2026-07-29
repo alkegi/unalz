@@ -35,6 +35,16 @@ cat archive.alz | unalz -l -      # read from stdin
 - CP949/EUC-KR filename decoding to UTF-8
 - CRC32 verification
 - DOS timestamp preservation
+- Truncated archives (a missing volume, an interrupted download) still yield
+  every complete file, with a warning
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | everything extracted |
+| 1 | extracted what was there, archive truncated |
+| 2 | failed |
 
 ## Docs
 
