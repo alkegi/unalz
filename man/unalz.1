@@ -1,0 +1,73 @@
+.TH UNALZ 1 "2026-07-29" "unalz 0.2.0" "User Commands"
+.SH NAME
+unalz \- extract or list an ALZ archive
+.SH SYNOPSIS
+.B unalz
+[\fIOPTION\fR]... \fIARCHIVE\fR [\fIFILE\fR]...
+.br
+.B unalz
+[\fIOPTION\fR]... \fB\-\fR [\fIFILE\fR]...
+.SH DESCRIPTION
+.B unalz
+extracts or lists the contents of an ALZ archive. With no \fIFILE\fR operand,
+every entry is extracted; otherwise only the named entries are. A lone
+.B \-
+in place of \fIARCHIVE\fR reads the archive from standard input.
+.SH OPTIONS
+.TP
+.BR \-l ", " \-\-list
+List archive contents instead of extracting.
+.TP
+.BR \-d ", " \-\-output\-dir " \fIDIR\fR"
+Extract into \fIDIR\fR (default: the current directory).
+.TP
+.BR \-p ", " \-\-pipe
+Extract to standard output instead of to files.
+.TP
+.BR \-P ", " \-\-password " \fIPW\fR"
+Decryption password for an encrypted archive. When omitted, an encrypted
+archive prompts on the terminal.
+.TP
+.BR \-q ", " \-\-quiet
+Suppress progress messages.
+.TP
+.BR \-h ", " \-\-help
+Show a help summary and exit.
+.TP
+.BR \-V ", " \-\-version
+Show version information and exit.
+.PP
+Short flags may be bundled, for example
+.BR \-lq .
+An option that takes an argument may be given as
+.BR \-d DIR ", " "\-d " DIR ", " \-\-output\-dir=DIR ", or " "\-\-output\-dir " DIR.
+A
+.B \-\-
+argument ends option parsing; every argument after it is treated as a
+\fIFILE\fR name.
+.SH "EXIT STATUS"
+.TP
+.B 0
+Everything was extracted.
+.TP
+.B 1
+Extracted every complete file, but the archive was truncated (a missing volume
+or an interrupted download).
+.TP
+.B 2
+A fatal error occurred.
+.SH EXAMPLES
+.TP
+.B unalz archive.alz
+Extract every file into the current directory.
+.TP
+.B unalz \-d out/ \-P secret archive.alz
+Extract an encrypted archive into \fBout/\fR.
+.TP
+.B unalz \-l archive.alz
+List the archive contents.
+.SH "SEE ALSO"
+.BR unegg (1)
+.SH AUTHORS
+Part of the alkegi project <https://github.com/alkegi>. Ported from the original
+C++ unalz by Hancom/kippler.
