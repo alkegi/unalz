@@ -41,7 +41,7 @@ pub enum AlzError {
     PasswordNotSet,
     /// The password failed the encryption header check.
     InvalidPassword,
-    /// An entry name or symlink target would escape the destination directory.
+    /// An entry name would escape the destination directory.
     PathTraversal(String),
     /// An underlying I/O error.
     Io(std::io::Error),

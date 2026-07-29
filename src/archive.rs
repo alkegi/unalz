@@ -25,7 +25,6 @@ pub const ATTR_HIDDEN: u8 = 0x02;
 pub const ATTR_SYSTEM: u8 = 0x04;
 pub const ATTR_DIRECTORY: u8 = 0x10;
 pub const ATTR_ARCHIVE: u8 = 0x20;
-pub const ATTR_SYMLINK: u8 = 0x40;
 
 /// Compression method of an entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,10 +92,6 @@ impl AlzFileEntry {
 
     pub fn is_directory(&self) -> bool {
         self.file_attribute & ATTR_DIRECTORY != 0
-    }
-
-    pub fn is_symlink(&self) -> bool {
-        self.file_attribute & ATTR_SYMLINK != 0
     }
 
     pub fn has_data_descriptor(&self) -> bool {

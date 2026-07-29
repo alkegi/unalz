@@ -5,8 +5,7 @@ use std::path::Path;
 use std::process;
 
 use unalz::archive::{
-    ATTR_ARCHIVE, ATTR_DIRECTORY, ATTR_HIDDEN, ATTR_READONLY, ATTR_SYMLINK, AlzArchive,
-    archive_totals,
+    ATTR_ARCHIVE, ATTR_DIRECTORY, ATTR_HIDDEN, ATTR_READONLY, AlzArchive, archive_totals,
 };
 use unalz::dostime::dos_datetime_to_string;
 use unalz::extract;
@@ -186,18 +185,17 @@ fn main() {
 fn list_archive(archive: &AlzArchive, source: &str) {
     println!("\nListing archive: {source}");
     println!();
-    println!("Attr   Uncomp Size    Comp Size Method  Date & Time & File Name");
+    println!("Attr  Uncomp Size    Comp Size Method  Date & Time & File Name");
     println!(
-        "----- ------------ ------------ ------- ------------------------------------------------"
+        "---- ------------ ------------ ------- ------------------------------------------------"
     );
 
     for entry in &archive.entries {
         let a = entry.file_attribute;
         let attr = format!(
-            "{}{}{}{}{}",
+            "{}{}{}{}",
             if a & ATTR_ARCHIVE != 0 { "A" } else { "_" },
             if a & ATTR_DIRECTORY != 0 { "D" } else { "_" },
-            if a & ATTR_SYMLINK != 0 { "S" } else { "_" },
             if a & ATTR_READONLY != 0 { "R" } else { "_" },
             if a & ATTR_HIDDEN != 0 { "H" } else { "_" },
         );
