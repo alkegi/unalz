@@ -68,6 +68,9 @@ pub fn extract_entry(
     // Defense in depth: confirm the resolved path stays inside dest_dir,
     // catching escapes via a symlinked destination directory.
     if !pipe_mode {
+        // Create the destination up front so `-d newdir` works and canonicalize
+        // (which requires an existing path) has something to resolve.
+        fs::create_dir_all(dest_dir)?;
         let canonical_dest = fs::canonicalize(dest_dir)?;
         // dest_path may not exist yet; resolve via its parent directory.
         let resolved = if let Some(parent) = dest_path.parent() {
