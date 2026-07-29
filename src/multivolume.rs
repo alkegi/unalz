@@ -198,9 +198,12 @@ impl Read for MultiVolumeReader {
             let vol = &mut self.volumes[self.cur_volume];
             let phys_pos = vol.file.stream_position()?;
             let data_end = vol.file_size.saturating_sub(vol.tail_size);
-            let avail = data_end.saturating_sub(phys_pos) as usize;
+            // Clamp in u64 before narrowing so a >4 GiB span cannot truncate to 0
+            // (which would skip a volume) on a 32-bit target.
+            let want = (buf.len() - total_read) as u64;
+            let to_read = data_end.saturating_sub(phys_pos).min(want) as usize;
 
-            if avail == 0 {
+            if to_read == 0 {
                 // Move to next volume.
                 self.cur_volume += 1;
                 if self.cur_volume >= self.volumes.len() {
@@ -211,7 +214,6 @@ impl Read for MultiVolumeReader {
                 continue;
             }
 
-            let to_read = avail.min(buf.len() - total_read);
             let n = vol.file.read(&mut buf[total_read..total_read + to_read])?;
             if n == 0 {
                 break;
