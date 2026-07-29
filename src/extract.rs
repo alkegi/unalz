@@ -203,6 +203,15 @@ pub fn extract_all(
             Err(e) => return Err(e),
         }
     }
+    // The index itself may have ended on a truncated header, so there is no cut
+    // mid-entry to report above yet the archive is still incomplete.
+    if archive.truncated {
+        eprintln!(
+            "\nwarning: archive truncated (missing split volume?); \
+             kept the {total} complete files"
+        );
+        return Ok(false);
+    }
     Ok(true)
 }
 
@@ -216,6 +225,7 @@ pub fn extract_files(
     quiet: bool,
 ) -> AlzResult<bool> {
     let entries: Vec<AlzFileEntry> = archive.entries.clone();
+    let mut all_matched = true;
     for name in file_names {
         if let Some(entry) = entries.iter().find(|e| e.file_name == *name) {
             if !quiet && !pipe_mode {
@@ -239,11 +249,14 @@ pub fn extract_files(
                 }
                 Err(e) => return Err(e),
             }
-        } else if !quiet && !pipe_mode {
-            eprintln!("\nfilename not matched : {name}");
+        } else {
+            all_matched = false;
+            if !quiet && !pipe_mode {
+                eprintln!("\nfilename not matched : {name}");
+            }
         }
     }
-    Ok(true)
+    Ok(all_matched)
 }
 
 #[cfg(test)]
