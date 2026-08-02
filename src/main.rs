@@ -13,19 +13,21 @@ use unalz::extract;
 
 const USAGE: &str = "\
 Usage: unalz [OPTION]... ARCHIVE [FILE]...
-       unalz [OPTION]... - [FILE]...
+  or:  unalz [OPTION]... - [FILE]...
 
-Extract or list an ALZ archive. With no FILE, every entry is extracted.
+Extract files from an ALZ archive, or list its contents. With no FILE
+operand every file is extracted; otherwise only the named FILEs are.
+A single '-' in place of ARCHIVE reads the archive from standard input.
 
-  -l, --list            list contents instead of extracting
-  -d, --output-dir DIR  extract into DIR (default: current directory)
-  -p, --pipe            extract to stdout
-  -P, --password PW     decryption password
-  -q, --quiet           suppress progress messages
-  -h, --help            show this help and exit
-  -V, --version         show version and exit
+  -l, --list            list the archive contents, do not extract
+  -d, --output-dir=DIR  extract into DIR instead of the current directory
+  -p, --pipe            write extracted files to standard output
+  -P, --password=PW     decrypt the archive with password PW
+  -q, --quiet           suppress informational messages
+  -h, --help            display this help and exit
+  -V, --version         display version information and exit
 
-Use -- to end option parsing; a lone - reads the archive from stdin.";
+Report bugs at <https://github.com/alkegi/unalz/issues>.";
 
 struct Cli {
     list: bool,

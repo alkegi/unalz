@@ -28,7 +28,11 @@ cat archive.alz | unalz -l -      # read from stdin
 | `-h` | `--help` | show help and exit |
 | `-V` | `--version` | show version and exit |
 
-Short flags bundle (`-lq`). See [`unalz.1`](man/unalz.1) for the man page.
+## Install
+
+```
+cargo install unalz
+```
 
 ## Supported Features
 
@@ -62,6 +66,10 @@ Short flags bundle (`-lq`). See [`unalz.1`](man/unalz.1) for the man page.
 
 [https://github.com/alkegi/docs](https://github.com/alkegi/docs)
 
-## Reference
+## References
 
-- [`unalz`](https://github.com/kippler/unalz) - original C/C++ implementation by kippler
+- [kippler/unalz](https://github.com/kippler/unalz)
+
+---
+
+Part of the [alkegi (알깨기)](https://github.com/alkegi) project.
